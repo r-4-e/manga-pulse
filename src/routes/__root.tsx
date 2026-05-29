@@ -115,7 +115,7 @@ function RootComponent() {
           <Nav />
           <Outlet />
         </div>
-        <Toaster theme="dark" position="top-center" />
+        <Toaster position="top-center" />
       </AuthProvider>
     </QueryClientProvider>
   );
