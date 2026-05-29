@@ -116,7 +116,7 @@ function NewTier() {
                 title={m.title}
               >
                 {m.cover_url ? (
-                  <img src={m.cover_url} alt={m.title} className="aspect-[2/3] w-full object-cover" />
+                  <img src={m.cover_url} alt={m.title} referrerPolicy="no-referrer" className="aspect-[2/3] w-full object-cover" />
                 ) : (
                   <div className="grid aspect-[2/3] place-items-center bg-muted p-1 text-[9px]">{m.title.slice(0, 20)}</div>
                 )}

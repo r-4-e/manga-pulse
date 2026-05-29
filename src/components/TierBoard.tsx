@@ -200,7 +200,7 @@ function ItemChip({
       title={item.title}
     >
       {item.cover_url ? (
-        <img src={item.cover_url} alt={item.title} className="aspect-[2/3] w-full object-cover" />
+        <img src={item.cover_url} alt={item.title} referrerPolicy="no-referrer" className="aspect-[2/3] w-full object-cover" />
       ) : (
         <div className="grid aspect-[2/3] place-items-center bg-muted text-[9px] text-center px-1">
           {item.title.slice(0, 20)}
