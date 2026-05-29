@@ -14,7 +14,193 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      manga_cache: {
+        Row: {
+          alt_titles: string[] | null
+          author: string | null
+          cover_url: string | null
+          description: string | null
+          fetched_at: string
+          genres: string[] | null
+          id: string
+          rating: number | null
+          raw: Json | null
+          source: string
+          status: string | null
+          title: string
+          year: number | null
+        }
+        Insert: {
+          alt_titles?: string[] | null
+          author?: string | null
+          cover_url?: string | null
+          description?: string | null
+          fetched_at?: string
+          genres?: string[] | null
+          id: string
+          rating?: number | null
+          raw?: Json | null
+          source?: string
+          status?: string | null
+          title: string
+          year?: number | null
+        }
+        Update: {
+          alt_titles?: string[] | null
+          author?: string | null
+          cover_url?: string | null
+          description?: string | null
+          fetched_at?: string
+          genres?: string[] | null
+          id?: string
+          rating?: number | null
+          raw?: Json | null
+          source?: string
+          status?: string | null
+          title?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
+      opinion_votes: {
+        Row: {
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["vote_kind"]
+          opinion_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["vote_kind"]
+          opinion_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["vote_kind"]
+          opinion_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opinion_votes_opinion_id_fkey"
+            columns: ["opinion_id"]
+            isOneToOne: false
+            referencedRelation: "opinions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opinions: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          manga_id: string | null
+          manga_title: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          manga_id?: string | null
+          manga_title?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          manga_id?: string | null
+          manga_title?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opinions_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "manga_cache"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          manga_dna: Json | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          manga_dna?: Json | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          manga_dna?: Json | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      tier_lists: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_public: boolean
+          items: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          items?: Json
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          items?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +209,16 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      vote_kind:
+        | "agree"
+        | "strong_agree"
+        | "disagree"
+        | "strong_disagree"
+        | "well_explained"
+        | "poor_argument"
+        | "unique"
+        | "common"
+        | "controversial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +345,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      vote_kind: [
+        "agree",
+        "strong_agree",
+        "disagree",
+        "strong_disagree",
+        "well_explained",
+        "poor_argument",
+        "unique",
+        "common",
+        "controversial",
+      ],
+    },
   },
 } as const
