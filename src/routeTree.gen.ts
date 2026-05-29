@@ -9,38 +9,174 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as OpinionsRouteImport } from './routes/opinions'
+import { Route as MeRouteImport } from './routes/me'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UUsernameRouteImport } from './routes/u.$username'
+import { Route as TierNewRouteImport } from './routes/tier.new'
+import { Route as TierIdRouteImport } from './routes/tier.$id'
+import { Route as MangaIdRouteImport } from './routes/manga.$id'
 
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpinionsRoute = OpinionsRouteImport.update({
+  id: '/opinions',
+  path: '/opinions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UUsernameRoute = UUsernameRouteImport.update({
+  id: '/u/$username',
+  path: '/u/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TierNewRoute = TierNewRouteImport.update({
+  id: '/tier/new',
+  path: '/tier/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TierIdRoute = TierIdRouteImport.update({
+  id: '/tier/$id',
+  path: '/tier/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MangaIdRoute = MangaIdRouteImport.update({
+  id: '/manga/$id',
+  path: '/manga/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/me': typeof MeRoute
+  '/opinions': typeof OpinionsRoute
+  '/search': typeof SearchRoute
+  '/manga/$id': typeof MangaIdRoute
+  '/tier/$id': typeof TierIdRoute
+  '/tier/new': typeof TierNewRoute
+  '/u/$username': typeof UUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/me': typeof MeRoute
+  '/opinions': typeof OpinionsRoute
+  '/search': typeof SearchRoute
+  '/manga/$id': typeof MangaIdRoute
+  '/tier/$id': typeof TierIdRoute
+  '/tier/new': typeof TierNewRoute
+  '/u/$username': typeof UUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/me': typeof MeRoute
+  '/opinions': typeof OpinionsRoute
+  '/search': typeof SearchRoute
+  '/manga/$id': typeof MangaIdRoute
+  '/tier/$id': typeof TierIdRoute
+  '/tier/new': typeof TierNewRoute
+  '/u/$username': typeof UUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/me'
+    | '/opinions'
+    | '/search'
+    | '/manga/$id'
+    | '/tier/$id'
+    | '/tier/new'
+    | '/u/$username'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/me'
+    | '/opinions'
+    | '/search'
+    | '/manga/$id'
+    | '/tier/$id'
+    | '/tier/new'
+    | '/u/$username'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/me'
+    | '/opinions'
+    | '/search'
+    | '/manga/$id'
+    | '/tier/$id'
+    | '/tier/new'
+    | '/u/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  MeRoute: typeof MeRoute
+  OpinionsRoute: typeof OpinionsRoute
+  SearchRoute: typeof SearchRoute
+  MangaIdRoute: typeof MangaIdRoute
+  TierIdRoute: typeof TierIdRoute
+  TierNewRoute: typeof TierNewRoute
+  UUsernameRoute: typeof UUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/opinions': {
+      id: '/opinions'
+      path: '/opinions'
+      fullPath: '/opinions'
+      preLoaderRoute: typeof OpinionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +184,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/u/$username': {
+      id: '/u/$username'
+      path: '/u/$username'
+      fullPath: '/u/$username'
+      preLoaderRoute: typeof UUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tier/new': {
+      id: '/tier/new'
+      path: '/tier/new'
+      fullPath: '/tier/new'
+      preLoaderRoute: typeof TierNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tier/$id': {
+      id: '/tier/$id'
+      path: '/tier/$id'
+      fullPath: '/tier/$id'
+      preLoaderRoute: typeof TierIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manga/$id': {
+      id: '/manga/$id'
+      path: '/manga/$id'
+      fullPath: '/manga/$id'
+      preLoaderRoute: typeof MangaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  MeRoute: MeRoute,
+  OpinionsRoute: OpinionsRoute,
+  SearchRoute: SearchRoute,
+  MangaIdRoute: MangaIdRoute,
+  TierIdRoute: TierIdRoute,
+  TierNewRoute: TierNewRoute,
+  UUsernameRoute: UUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
