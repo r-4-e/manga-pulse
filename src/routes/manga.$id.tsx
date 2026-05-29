@@ -44,7 +44,7 @@ function MangaDetail() {
             {data.cover_url ? (
               <img
                 src={data.cover_url}
-                alt={data.title}
+                alt={data.title} referrerPolicy="no-referrer"
                 className="aspect-[2/3] w-full rounded-xl object-cover shadow-2xl glow-magenta"
               />
             ) : (

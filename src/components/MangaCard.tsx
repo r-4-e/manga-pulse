@@ -21,6 +21,7 @@ export function MangaCard({ id, title, cover_url, author }: Props) {
             src={cover_url}
             alt={title}
             loading="lazy"
+            referrerPolicy="no-referrer"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (

@@ -76,7 +76,7 @@ function ViewTier() {
                   title={it.title}
                 >
                   {it.cover_url ? (
-                    <img src={it.cover_url} alt={it.title} className="aspect-[2/3] w-full object-cover" />
+                    <img src={it.cover_url} alt={it.title} referrerPolicy="no-referrer" className="aspect-[2/3] w-full object-cover" />
                   ) : (
                     <div className="grid aspect-[2/3] place-items-center bg-muted px-1 text-[9px]">{it.title.slice(0, 20)}</div>
                   )}
