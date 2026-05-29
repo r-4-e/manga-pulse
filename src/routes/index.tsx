@@ -1,22 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, queryOptions } from "@tanstack/react-query";
+import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { Flame, Swords, Sparkles, TrendingUp, Search, ArrowRight } from "lucide-react";
 import { getPopularManga } from "@/lib/manga.functions";
 import { MangaCard } from "@/components/MangaCard";
 
 const popularQO = queryOptions({
   queryKey: ["manga", "popular"],
-  queryFn: () => getPopularManga(),
+  queryFn: () => getPopularManga().catch(() => []),
 });
 
 export const Route = createFileRoute("/")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(popularQO).catch(() => []),
+  loader: ({ context }) => context.queryClient.ensureQueryData(popularQO),
   errorComponent: ({ error }) => <div className="p-8 text-center">Failed: {error.message}</div>,
   component: Index,
 });
 
 function Index() {
-  const { data } = useQuery({ ...popularQO, retry: false });
+  const { data } = useSuspenseQuery(popularQO);
   return (
     <main>
       {/* HERO */}
