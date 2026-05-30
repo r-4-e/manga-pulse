@@ -41,7 +41,7 @@ function normalize(item: any): MangaSummary {
   return {
     id: item.id,
     title: pickTitle(attrs),
-    cover_url: coverFile ? `https://uploads.mangadex.org/covers/${item.id}/${coverFile}.256.jpg` : null,
+    cover_url: coverFile ? `/api/cover?id=${item.id}&file=${encodeURIComponent(coverFile)}` : null,
     author,
     status: attrs.status ?? null,
     year: attrs.year ?? null,
