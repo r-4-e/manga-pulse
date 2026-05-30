@@ -50,9 +50,10 @@ export function Nav() {
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-border bg-background/95 backdrop-blur-md md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 border-t border-border bg-background/95 backdrop-blur-md md:hidden">
         <MobileTab to="/" icon={<Home className="h-5 w-5" />} label="Home" />
         <MobileTab to="/search" icon={<Search className="h-5 w-5" />} label="Search" />
+        <MobileTab to="/tier/new" icon={<Plus className="h-5 w-5" />} label="Tier" />
         <MobileTab to="/opinions" icon={<Swords className="h-5 w-5" />} label="Arena" />
         <MobileTab to="/me" icon={<User2 className="h-5 w-5" />} label="Me" />
       </nav>
