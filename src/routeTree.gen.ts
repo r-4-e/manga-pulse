@@ -19,6 +19,7 @@ import { Route as UUsernameRouteImport } from './routes/u.$username'
 import { Route as TierNewRouteImport } from './routes/tier.new'
 import { Route as TierIdRouteImport } from './routes/tier.$id'
 import { Route as MangaIdRouteImport } from './routes/manga.$id'
+import { Route as ApiCoverRouteImport } from './routes/api.cover'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -70,6 +71,11 @@ const MangaIdRoute = MangaIdRouteImport.update({
   path: '/manga/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCoverRoute = ApiCoverRouteImport.update({
+  id: '/api/cover',
+  path: '/api/cover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/opinions': typeof OpinionsRoute
   '/search': typeof SearchRoute
+  '/api/cover': typeof ApiCoverRoute
   '/manga/$id': typeof MangaIdRoute
   '/tier/$id': typeof TierIdRoute
   '/tier/new': typeof TierNewRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/opinions': typeof OpinionsRoute
   '/search': typeof SearchRoute
+  '/api/cover': typeof ApiCoverRoute
   '/manga/$id': typeof MangaIdRoute
   '/tier/$id': typeof TierIdRoute
   '/tier/new': typeof TierNewRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/opinions': typeof OpinionsRoute
   '/search': typeof SearchRoute
+  '/api/cover': typeof ApiCoverRoute
   '/manga/$id': typeof MangaIdRoute
   '/tier/$id': typeof TierIdRoute
   '/tier/new': typeof TierNewRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/opinions'
     | '/search'
+    | '/api/cover'
     | '/manga/$id'
     | '/tier/$id'
     | '/tier/new'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/opinions'
     | '/search'
+    | '/api/cover'
     | '/manga/$id'
     | '/tier/$id'
     | '/tier/new'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/opinions'
     | '/search'
+    | '/api/cover'
     | '/manga/$id'
     | '/tier/$id'
     | '/tier/new'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   OpinionsRoute: typeof OpinionsRoute
   SearchRoute: typeof SearchRoute
+  ApiCoverRoute: typeof ApiCoverRoute
   MangaIdRoute: typeof MangaIdRoute
   TierIdRoute: typeof TierIdRoute
   TierNewRoute: typeof TierNewRoute
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MangaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cover': {
+      id: '/api/cover'
+      path: '/api/cover'
+      fullPath: '/api/cover'
+      preLoaderRoute: typeof ApiCoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -242,6 +262,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   OpinionsRoute: OpinionsRoute,
   SearchRoute: SearchRoute,
+  ApiCoverRoute: ApiCoverRoute,
   MangaIdRoute: MangaIdRoute,
   TierIdRoute: TierIdRoute,
   TierNewRoute: TierNewRoute,
