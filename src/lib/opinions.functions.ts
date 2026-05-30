@@ -62,21 +62,33 @@ export const listOpinions = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<OpinionWithStats[]> => {
     const { data: opinions, error } = await supabaseAdmin
       .from("opinions")
-      .select("*, profiles(username, display_name, avatar_url)")
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw new Error(error.message);
     const ids = (opinions ?? []).map((o: any) => o.id);
-    const { data: votes } = ids.length
-      ? await supabaseAdmin.from("opinion_votes").select("opinion_id, kind").in("opinion_id", ids)
-      : { data: [] as any[] };
+    const userIds = Array.from(new Set((opinions ?? []).map((o: any) => o.user_id).filter(Boolean)));
+    const [votesRes, profilesRes] = await Promise.all([
+      ids.length
+        ? supabaseAdmin.from("opinion_votes").select("opinion_id, kind").in("opinion_id", ids)
+        : Promise.resolve({ data: [] as any[] }),
+      userIds.length
+        ? supabaseAdmin.from("profiles").select("id, username, display_name, avatar_url").in("id", userIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const votes = votesRes.data ?? [];
+    const profiles = profilesRes.data ?? [];
+    const profileById = new Map<string, any>();
+    for (const p of profiles) profileById.set(p.id, { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url });
     const byOpinion = new Map<string, any[]>();
-    for (const v of votes ?? []) {
+    for (const v of votes) {
       const list = byOpinion.get(v.opinion_id) ?? [];
       list.push(v);
       byOpinion.set(v.opinion_id, list);
     }
-    let result = (opinions ?? []).map((o: any) => summarize(o, byOpinion.get(o.id) ?? []));
+    let result = (opinions ?? []).map((o: any) =>
+      summarize({ ...o, profiles: profileById.get(o.user_id) ?? null }, byOpinion.get(o.id) ?? []),
+    );
     if (data.sort === "hot") result.sort((a, b) => b.score - a.score);
     if (data.sort === "controversial") result.sort((a, b) => b.controversy - a.controversy);
     return result;
