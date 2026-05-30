@@ -90,6 +90,50 @@ export const searchManga = createServerFn({ method: "GET" })
     return items;
   });
 
+const FEATURED_TITLES = [
+  "Berserk",
+  "Vinland Saga",
+  "Vagabond",
+  "Attack on Titan",
+  "One Piece",
+  "Chainsaw Man",
+  "Jujutsu Kaisen",
+  "Monster",
+  "Bleach",
+  "Naruto",
+  "Hunter x Hunter",
+  "Tokyo Ghoul",
+];
+
+export const getFeaturedManga = createServerFn({ method: "GET" }).handler(
+  async (): Promise<MangaSummary[]> => {
+    const results = await Promise.all(
+      FEATURED_TITLES.map(async (title) => {
+        try {
+          const url = new URL(`${MD}/manga`);
+          url.searchParams.set("title", title);
+          url.searchParams.set("limit", "1");
+          url.searchParams.append("includes[]", "cover_art");
+          url.searchParams.append("includes[]", "author");
+          url.searchParams.append("contentRating[]", "safe");
+          url.searchParams.append("contentRating[]", "suggestive");
+          url.searchParams.set("order[relevance]", "desc");
+          const res = await fetch(url);
+          if (!res.ok) return null;
+          const json = await res.json();
+          const item = json.data?.[0];
+          return item ? normalize(item) : null;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const items = results.filter((x): x is MangaSummary => !!x);
+    cacheManga(items).catch(() => {});
+    return items;
+  },
+);
+
 export const getPopularManga = createServerFn({ method: "GET" }).handler(
   async (): Promise<MangaSummary[]> => {
     const url = new URL(`${MD}/manga`);
