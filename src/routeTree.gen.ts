@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as OpinionsRouteImport } from './routes/opinions'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,6 +28,11 @@ const SearchRoute = SearchRouteImport.update({
 const OpinionsRoute = OpinionsRouteImport.update({
   id: '/opinions',
   path: '/opinions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeRoute = MeRouteImport.update({
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/me': typeof MeRoute
+  '/onboarding': typeof OnboardingRoute
   '/opinions': typeof OpinionsRoute
   '/search': typeof SearchRoute
   '/manga/$id': typeof MangaIdRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/me': typeof MeRoute
+  '/onboarding': typeof OnboardingRoute
   '/opinions': typeof OpinionsRoute
   '/search': typeof SearchRoute
   '/manga/$id': typeof MangaIdRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/me': typeof MeRoute
+  '/onboarding': typeof OnboardingRoute
   '/opinions': typeof OpinionsRoute
   '/search': typeof SearchRoute
   '/manga/$id': typeof MangaIdRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/me'
+    | '/onboarding'
     | '/opinions'
     | '/search'
     | '/manga/$id'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/me'
+    | '/onboarding'
     | '/opinions'
     | '/search'
     | '/manga/$id'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/me'
+    | '/onboarding'
     | '/opinions'
     | '/search'
     | '/manga/$id'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   MeRoute: typeof MeRoute
+  OnboardingRoute: typeof OnboardingRoute
   OpinionsRoute: typeof OpinionsRoute
   SearchRoute: typeof SearchRoute
   MangaIdRoute: typeof MangaIdRoute
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/opinions'
       fullPath: '/opinions'
       preLoaderRoute: typeof OpinionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/me': {
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   MeRoute: MeRoute,
+  OnboardingRoute: OnboardingRoute,
   OpinionsRoute: OpinionsRoute,
   SearchRoute: SearchRoute,
   MangaIdRoute: MangaIdRoute,
@@ -229,3 +250,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
