@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
-import { BookOpen, Search, Swords, User2, LogOut, Plus, Home } from "lucide-react";
+import { Search, Swords, User2, LogOut, Plus, Home } from "lucide-react";
+import { LogoMark } from "./Logo";
 
 export function Nav() {
   const { user, signOut } = useAuth();
@@ -9,8 +10,8 @@ export function Nav() {
     <header className="sticky top-0 z-40 glass-strong">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
         <Link to="/" className="flex items-center gap-2 font-display text-base font-semibold tracking-tight">
-          <span className="grid h-7 w-7 place-items-center rounded-md bg-foreground text-background">
-            <BookOpen className="h-3.5 w-3.5" />
+          <span className="text-foreground">
+            <LogoMark size={26} />
           </span>
           <span>MangHaven</span>
         </Link>
