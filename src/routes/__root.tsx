@@ -121,15 +121,18 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AuthCacheBridge />
-        <Splash />
-        <div className="min-h-screen pb-16 md:pb-0">
-          <Nav />
-          <Outlet />
-        </div>
-        <Toaster position="top-center" />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AuthCacheBridge />
+          <Splash />
+          <div className="min-h-screen pb-16 md:pb-0">
+            <Nav />
+            <Outlet />
+          </div>
+          <InstallPrompt />
+          <Toaster position="top-center" />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

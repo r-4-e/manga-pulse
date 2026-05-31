@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { Search, Swords, User2, LogOut, Plus, Home } from "lucide-react";
 import { LogoMark } from "./Logo";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Nav() {
   const { user, signOut } = useAuth();
