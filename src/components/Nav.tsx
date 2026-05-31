@@ -12,7 +12,7 @@ export function Nav() {
           <span className="grid h-7 w-7 place-items-center rounded-md bg-foreground text-background">
             <BookOpen className="h-3.5 w-3.5" />
           </span>
-          <span>Mangaverse</span>
+          <span>MangHaven</span>
         </Link>
 
         <nav className="ml-4 hidden items-center gap-1 md:flex">
