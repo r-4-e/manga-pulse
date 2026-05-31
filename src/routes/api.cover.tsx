@@ -12,13 +12,20 @@ export const Route = createFileRoute("/api/cover")({
           return new Response("bad request", { status: 400 });
         }
         const target = `https://uploads.mangadex.org/covers/${id}/${file}.${size}.jpg`;
-        const upstream = await fetch(target, { headers: { Referer: "" } });
+        const upstream = await fetch(target, {
+          headers: {
+            "user-agent": "MangHaven/1.0 (+https://manghaven.app)",
+            accept: "image/avif,image/webp,image/*,*/*;q=0.8",
+          },
+        });
         if (!upstream.ok) return new Response("not found", { status: upstream.status });
-        return new Response(upstream.body, {
+        const buf = await upstream.arrayBuffer();
+        return new Response(buf, {
           status: 200,
           headers: {
             "content-type": upstream.headers.get("content-type") ?? "image/jpeg",
             "cache-control": "public, max-age=86400, immutable",
+            "access-control-allow-origin": "*",
           },
         });
       },
