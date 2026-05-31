@@ -20,6 +20,7 @@ import { Route as TierNewRouteImport } from './routes/tier.new'
 import { Route as TierIdRouteImport } from './routes/tier.$id'
 import { Route as MangaIdRouteImport } from './routes/manga.$id'
 import { Route as ApiCoverRouteImport } from './routes/api.cover'
+import { Route as ApiOgTierIdRouteImport } from './routes/api.og.tier.$id'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -76,6 +77,11 @@ const ApiCoverRoute = ApiCoverRouteImport.update({
   path: '/api/cover',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOgTierIdRoute = ApiOgTierIdRouteImport.update({
+  id: '/api/og/tier/$id',
+  path: '/api/og/tier/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/tier/$id': typeof TierIdRoute
   '/tier/new': typeof TierNewRoute
   '/u/$username': typeof UUsernameRoute
+  '/api/og/tier/$id': typeof ApiOgTierIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/tier/$id': typeof TierIdRoute
   '/tier/new': typeof TierNewRoute
   '/u/$username': typeof UUsernameRoute
+  '/api/og/tier/$id': typeof ApiOgTierIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/tier/$id': typeof TierIdRoute
   '/tier/new': typeof TierNewRoute
   '/u/$username': typeof UUsernameRoute
+  '/api/og/tier/$id': typeof ApiOgTierIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/tier/$id'
     | '/tier/new'
     | '/u/$username'
+    | '/api/og/tier/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/tier/$id'
     | '/tier/new'
     | '/u/$username'
+    | '/api/og/tier/$id'
   id:
     | '__root__'
     | '/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/tier/$id'
     | '/tier/new'
     | '/u/$username'
+    | '/api/og/tier/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +183,7 @@ export interface RootRouteChildren {
   TierIdRoute: typeof TierIdRoute
   TierNewRoute: typeof TierNewRoute
   UUsernameRoute: typeof UUsernameRoute
+  ApiOgTierIdRoute: typeof ApiOgTierIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCoverRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/og/tier/$id': {
+      id: '/api/og/tier/$id'
+      path: '/api/og/tier/$id'
+      fullPath: '/api/og/tier/$id'
+      preLoaderRoute: typeof ApiOgTierIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -267,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   TierIdRoute: TierIdRoute,
   TierNewRoute: TierNewRoute,
   UUsernameRoute: UUsernameRoute,
+  ApiOgTierIdRoute: ApiOgTierIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

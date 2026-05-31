@@ -13,9 +13,11 @@ import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/lib/auth-context";
+import { ThemeProvider } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { Splash } from "@/components/Splash";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 function NotFoundComponent() {
   return (
@@ -79,11 +81,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/favicon.svg" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+      },
+    ],
+    scripts: [
+      {
+        // No-flash theme bootstrap: runs before React hydrates.
+        children: `(function(){try{var t=localStorage.getItem('mh_theme');if(!t){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`,
       },
     ],
   }),
@@ -111,15 +121,18 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AuthCacheBridge />
-        <Splash />
-        <div className="min-h-screen pb-16 md:pb-0">
-          <Nav />
-          <Outlet />
-        </div>
-        <Toaster position="top-center" />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AuthCacheBridge />
+          <Splash />
+          <div className="min-h-screen pb-16 md:pb-0">
+            <Nav />
+            <Outlet />
+          </div>
+          <InstallPrompt />
+          <Toaster position="top-center" />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
