@@ -3,18 +3,31 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { getTierList } from "@/lib/tier-lists.functions";
 import { Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { CoverImg } from "@/components/CoverImg";
 
 const qo = (id: string) =>
   queryOptions({ queryKey: ["tier", id], queryFn: () => getTierList({ data: { id } }) });
 
 export const Route = createFileRoute("/tier/$id")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(qo(params.id)),
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: `${loaderData?.title ?? "Tier list"} — Mangaverse` },
-      { property: "og:title", content: loaderData?.title ?? "Tier list" },
-    ],
-  }),
+  head: ({ params, loaderData }) => {
+    const title = `${loaderData?.title ?? "Tier list"} — MangHaven`;
+    const ogImage = `/api/og/tier/${params.id}`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: `${loaderData?.title ?? "A manga tier list"} on MangHaven.` },
+        { property: "og:title", content: loaderData?.title ?? "Tier list" },
+        { property: "og:description", content: "Ranked on MangHaven." },
+        { property: "og:type", content: "article" },
+        { property: "og:url", content: `/tier/${params.id}` },
+        { property: "og:image", content: ogImage },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:image", content: ogImage },
+      ],
+      links: [{ rel: "canonical", href: `/tier/${params.id}` }],
+    };
+  },
   errorComponent: ({ error }) => <div className="p-8 text-center">Failed: {error.message}</div>,
   notFoundComponent: () => <div className="p-8 text-center">Not found</div>,
   component: ViewTier,
@@ -72,14 +85,10 @@ function ViewTier() {
                   key={it.id}
                   to="/manga/$id"
                   params={{ id: it.id }}
-                  className="w-14 overflow-hidden rounded-lg border border-white/10 sm:w-16"
+                  className="w-14 overflow-hidden rounded-lg border border-border sm:w-16"
                   title={it.title}
                 >
-                  {it.cover_url ? (
-                    <img src={it.cover_url} alt={it.title} referrerPolicy="no-referrer" className="aspect-[2/3] w-full object-cover" />
-                  ) : (
-                    <div className="grid aspect-[2/3] place-items-center bg-muted px-1 text-[9px]">{it.title.slice(0, 20)}</div>
-                  )}
+                  <CoverImg src={it.cover_url ?? null} alt={it.title} className="aspect-[2/3] w-full" />
                 </Link>
               ))}
             </div>

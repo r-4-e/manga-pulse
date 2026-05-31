@@ -24,6 +24,7 @@ export function Nav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
           {user ? (
             <>
               <Link
