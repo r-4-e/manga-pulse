@@ -2,17 +2,16 @@ import { useEffect, useState } from "react";
 import { LogoMark } from "./Logo";
 
 export function Splash() {
-  const [show, setShow] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return !sessionStorage.getItem("mh_splash_seen");
-  });
+  // Render nothing on SSR + initial client paint to avoid hydration mismatch.
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (!show) return;
+    if (sessionStorage.getItem("mh_splash_seen")) return;
     sessionStorage.setItem("mh_splash_seen", "1");
+    setShow(true);
     const t = setTimeout(() => setShow(false), 1100);
     return () => clearTimeout(t);
-  }, [show]);
+  }, []);
 
   if (!show) return null;
 
