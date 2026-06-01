@@ -1,14 +1,13 @@
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { Flame, ThumbsUp, ThumbsDown, Skull, Brain, Moon, Gem, Package, Mountain } from "lucide-react";
 import { toast } from "sonner";
 import { Link, useNavigate } from "@tanstack/react-router";
-import type { OpinionWithStats } from "@/lib/opinions.functions";
-import { voteOpinion } from "@/lib/opinions.functions";
+import type { OpinionWithStats, VoteKind } from "@/lib/opinions";
+import { voteOpinion } from "@/lib/opinions";
 import { useAuth } from "@/lib/auth-context";
 
-const REACTIONS: { kind: string; icon: React.ReactNode; label: string }[] = [
+const REACTIONS: { kind: VoteKind; icon: React.ReactNode; label: string }[] = [
   { kind: "strong_agree", icon: <Flame className="h-3.5 w-3.5" />, label: "🔥" },
   { kind: "agree", icon: <ThumbsUp className="h-3.5 w-3.5" />, label: "✓" },
   { kind: "disagree", icon: <ThumbsDown className="h-3.5 w-3.5" />, label: "✗" },
@@ -23,11 +22,10 @@ const REACTIONS: { kind: string; icon: React.ReactNode; label: string }[] = [
 export function OpinionCard({ opinion }: { opinion: OpinionWithStats }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const vote = useServerFn(voteOpinion);
   const qc = useQueryClient();
   const [pending, setPending] = useState<string | null>(null);
 
-  async function react(kind: string) {
+  async function react(kind: VoteKind) {
     if (!user) {
       toast.error("Sign in to vote");
       navigate({ to: "/auth" });
@@ -35,7 +33,7 @@ export function OpinionCard({ opinion }: { opinion: OpinionWithStats }) {
     }
     setPending(kind);
     try {
-      await vote({ data: { opinion_id: opinion.id, kind: kind as any } });
+      await voteOpinion(opinion.id, kind);
       await qc.invalidateQueries({ queryKey: ["opinions"] });
     } catch (e: any) {
       toast.error(e.message ?? "Vote failed");
@@ -43,10 +41,6 @@ export function OpinionCard({ opinion }: { opinion: OpinionWithStats }) {
       setPending(null);
     }
   }
-
-  const author = opinion.is_anonymous
-    ? "Anonymous"
-    : opinion.author?.display_name ?? opinion.author?.username ?? "user";
 
   return (
     <article className="rounded-2xl glass p-4 transition-all hover:border-white/15">
@@ -59,33 +53,20 @@ export function OpinionCard({ opinion }: { opinion: OpinionWithStats }) {
               @{opinion.author?.username}
             </Link>
           )}
-          {opinion.manga_title && (
-            <>
-              <span>·</span>
-              <span className="text-primary">{opinion.manga_title}</span>
-            </>
-          )}
+          {opinion.manga_title && (<><span>·</span><span className="text-primary">{opinion.manga_title}</span></>)}
         </span>
         <span className="font-mono text-xs">{opinion.score} pts</span>
       </div>
-
       <h3 className="font-display text-lg font-bold leading-snug">{opinion.title}</h3>
       {opinion.body && <p className="mt-1.5 text-sm text-muted-foreground">{opinion.body}</p>}
-
       <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
         <Stat label="Agreement" value={`${opinion.agreement_pct}%`} />
         <Stat label="Controversy" value={`${opinion.controversy}%`} />
         <Stat label="Votes" value={String(Object.values(opinion.votes).reduce((a, b) => a + b, 0))} />
       </div>
-
       <div className="mt-3 flex flex-wrap gap-1.5">
         {REACTIONS.map((r) => (
-          <button
-            key={r.kind}
-            onClick={() => react(r.kind)}
-            disabled={pending === r.kind}
-            className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs transition-all hover:border-primary/60 hover:bg-primary/10 disabled:opacity-50"
-          >
+          <button key={r.kind} onClick={() => react(r.kind)} disabled={pending === r.kind} className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs transition-all hover:border-primary/60 hover:bg-primary/10 disabled:opacity-50">
             <span>{r.label}</span>
             <span className="font-mono text-muted-foreground">{opinion.votes[r.kind] ?? 0}</span>
           </button>
