@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0d0d1a" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    />
+    <title>MangHaven — Rank, debate, share your manga taste</title>
+    <meta
+      name="description"
+      content="Rank arcs, post hot takes, debate fans, and turn your manga taste into shareable identity."
+    />
+    <meta property="og:title" content="MangHaven" />
+    <meta property="og:description" content="Where manga opinions become identity." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // No-flash theme bootstrap. Runs before React hydrates.
+      (function () {
+        try {
+          var t = localStorage.getItem("mh_theme");
+          if (!t) {
+            t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          if (t === "dark") document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

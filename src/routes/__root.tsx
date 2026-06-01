@@ -4,13 +4,10 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 import { Toaster } from "sonner";
 
-import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme";
@@ -30,7 +27,7 @@ function NotFoundComponent() {
         </p>
         <Link
           to="/"
-          className="mt-6 inline-flex items-center justify-center rounded-full bg-[var(--gradient-primary)] px-5 py-2.5 text-sm font-semibold text-background glow-magenta"
+          className="mt-6 inline-flex items-center justify-center rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
         >
           Go home
         </Link>
@@ -56,7 +53,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             router.invalidate();
             reset();
           }}
-          className="mt-6 rounded-full bg-[var(--gradient-primary)] px-5 py-2 text-sm font-semibold text-background"
+          className="mt-6 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background"
         >
           Try again
         </button>
@@ -66,56 +63,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { name: "theme-color", content: "#0d0d1a" },
-      { title: "MangHaven — Rank, debate, share your manga taste" },
-      { name: "description", content: "Rank arcs, post hot takes, debate fans, and turn your manga taste into shareable identity." },
-      { property: "og:title", content: "MangHaven" },
-      { property: "og:description", content: "Where manga opinions become identity." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/favicon.svg" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
-      },
-    ],
-    scripts: [
-      {
-        // No-flash theme bootstrap: runs before React hydrates.
-        children: `(function(){try{var t=localStorage.getItem('mh_theme');if(!t){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`,
-      },
-    ],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -141,7 +92,9 @@ function AuthCacheBridge() {
   const router = useRouter();
   const qc = useQueryClient();
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
       router.invalidate();
       qc.invalidateQueries();
     });
