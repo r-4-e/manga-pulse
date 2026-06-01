@@ -36,7 +36,7 @@ export async function saveTierList(input: SaveInput): Promise<TierListRow> {
       .update({
         title: input.title,
         category: input.category ?? "overall",
-        items: input.items,
+        items: input.items as any,
         is_public: input.is_public ?? true,
         updated_at: new Date().toISOString(),
       })
@@ -45,7 +45,7 @@ export async function saveTierList(input: SaveInput): Promise<TierListRow> {
       .select()
       .single();
     if (error) throw new Error(error.message);
-    return data as TierListRow;
+    return data as unknown as TierListRow;
   }
   const { data, error } = await supabase
     .from("tier_lists")
@@ -53,13 +53,13 @@ export async function saveTierList(input: SaveInput): Promise<TierListRow> {
       user_id: auth.user.id,
       title: input.title,
       category: input.category ?? "overall",
-      items: input.items,
+      items: input.items as any,
       is_public: input.is_public ?? true,
     })
     .select()
     .single();
   if (error) throw new Error(error.message);
-  return data as TierListRow;
+  return data as unknown as TierListRow;
 }
 
 export async function getTierList(
@@ -76,7 +76,7 @@ export async function getTierList(
     .select("username, display_name, avatar_url")
     .eq("id", list.user_id)
     .maybeSingle();
-  return { ...(list as TierListRow), author: profile ?? null };
+  return { ...(list as unknown as TierListRow), author: profile ?? null };
 }
 
 export async function listUserTierLists(username: string): Promise<TierListRow[]> {
@@ -92,7 +92,7 @@ export async function listUserTierLists(username: string): Promise<TierListRow[]
     .eq("user_id", profile.id)
     .eq("is_public", true)
     .order("created_at", { ascending: false });
-  return (data as TierListRow[]) ?? [];
+  return (data as unknown as TierListRow[]) ?? [];
 }
 
 export async function listMyTierLists(): Promise<TierListRow[]> {
@@ -103,7 +103,7 @@ export async function listMyTierLists(): Promise<TierListRow[]> {
     .select("*")
     .eq("user_id", auth.user.id)
     .order("updated_at", { ascending: false });
-  return (data as TierListRow[]) ?? [];
+  return (data as unknown as TierListRow[]) ?? [];
 }
 
 export async function getProfile(username: string) {

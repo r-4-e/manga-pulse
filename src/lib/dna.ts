@@ -80,7 +80,7 @@ export async function computeMyDna(userId: string): Promise<DnaReport> {
   const rankedIds = new Set<string>();
 
   for (const list of tiersRes.data ?? []) {
-    const items = (list.items ?? {}) as TierItems;
+    const items = (list.items ?? {}) as unknown as TierItems;
     for (const [tier, arr] of Object.entries(items)) {
       const w = TIER_WEIGHT[tier] ?? 0;
       for (const it of arr) {
