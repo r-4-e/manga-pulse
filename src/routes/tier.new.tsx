@@ -1,30 +1,27 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Search, Loader2, Save } from "lucide-react";
-import { searchManga, getManga } from "@/lib/manga.functions";
-import { saveTierList } from "@/lib/tier-lists.functions";
-import { TierBoard, type TierItem, type TierItems } from "@/components/TierBoard";
-import { useAuth } from "@/lib/auth-context";
 import { useQuery } from "@tanstack/react-query";
+import { searchManga, getManga, type MangaSummary } from "@/lib/manga";
+import { saveTierList } from "@/lib/tier-lists";
+import { TierBoard, type TierItem, type TierItems } from "@/components/TierBoard";
+import { CoverImg } from "@/components/CoverImg";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/tier/new")({
   validateSearch: z.object({ add: z.string().optional() }).parse,
-  head: () => ({ meta: [{ title: "New tier list — Mangaverse" }] }),
   component: NewTier,
 });
 
+const TIERS = ["S", "A", "B", "C", "D", "F"] as const;
 const EMPTY: TierItems = { S: [], A: [], B: [], C: [], D: [], F: [] };
 
 function NewTier() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { add } = Route.useSearch();
-  const search = useServerFn(searchManga);
-  const fetchOne = useServerFn(getManga);
-  const save = useServerFn(saveTierList);
 
   const [title, setTitle] = useState("My manga tier list");
   const [items, setItems] = useState<TierItems>(EMPTY);
@@ -32,13 +29,13 @@ function NewTier() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Auto-add manga from query param
+  // Preload from ?add=
   useQuery({
     queryKey: ["preload", add],
     queryFn: async () => {
       if (!add) return null;
       if ([...pool, ...Object.values(items).flat()].some((i) => i.id === add)) return null;
-      const m = await fetchOne({ data: { id: add } });
+      const m = await getManga(add);
       if (m) setPool((p) => [...p, { id: m.id, title: m.title, cover_url: m.cover_url }]);
       return m;
     },
@@ -47,13 +44,26 @@ function NewTier() {
 
   const searchQ = useQuery({
     queryKey: ["tier-search", q],
-    queryFn: () => search({ data: { q } }),
+    queryFn: () => searchManga(q),
     enabled: q.trim().length >= 2,
   });
 
-  function addToPool(m: { id: string; title: string; cover_url: string | null }) {
-    if ([...pool, ...Object.values(items).flat()].some((i) => i.id === m.id)) return;
-    setPool((p) => [...p, m]);
+  function hasId(id: string) {
+    return [...pool, ...Object.values(items).flat()].some((i) => i.id === id);
+  }
+
+  function addToTier(m: MangaSummary, tier: string | "POOL") {
+    if (hasId(m.id)) {
+      toast.info("Already added");
+      return;
+    }
+    const it: TierItem = { id: m.id, title: m.title, cover_url: m.cover_url };
+    if (tier === "POOL") {
+      setPool((p) => [...p, it]);
+    } else {
+      setItems((prev) => ({ ...prev, [tier]: [...(prev[tier] ?? []), it] }));
+    }
+    toast.success(tier === "POOL" ? "Added to pool" : `Added to ${tier}`);
     setQ("");
   }
 
@@ -65,8 +75,11 @@ function NewTier() {
     }
     setBusy(true);
     try {
-      const row = await save({
-        data: { title, category: "overall", items, is_public: true },
+      const row = await saveTierList({
+        title,
+        category: "overall",
+        items,
+        is_public: true,
       });
       toast.success("Saved 🔥");
       navigate({ to: "/tier/$id", params: { id: row.id } });
@@ -106,21 +119,21 @@ function NewTier() {
           />
           {searchQ.isFetching && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
         </div>
-        {q.trim().length >= 2 && searchQ.data && searchQ.data.length > 0 && (
-          <div className="mt-3 grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-6">
-            {searchQ.data.slice(0, 12).map((m) => (
-              <button
-                key={m.id}
-                onClick={() => addToPool({ id: m.id, title: m.title, cover_url: m.cover_url })}
-                className="overflow-hidden rounded-lg border border-white/10 transition-all hover:border-primary"
-                title={m.title}
-              >
-                {m.cover_url ? (
-                  <img src={m.cover_url} alt={m.title} referrerPolicy="no-referrer" className="aspect-[2/3] w-full object-cover" />
-                ) : (
-                  <div className="grid aspect-[2/3] place-items-center bg-muted p-1 text-[9px]">{m.title.slice(0, 20)}</div>
-                )}
-              </button>
+
+        {q.trim().length >= 2 && (
+          <div className="mt-3 space-y-2">
+            {searchQ.isError && (
+              <p className="py-4 text-center text-sm text-destructive">
+                Search failed. Try again.
+              </p>
+            )}
+            {!searchQ.isFetching && searchQ.data?.length === 0 && (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No results for "{q}"
+              </p>
+            )}
+            {searchQ.data?.slice(0, 12).map((m) => (
+              <SearchResult key={m.id} m={m} onPick={(tier) => addToTier(m, tier)} />
             ))}
           </div>
         )}
@@ -135,5 +148,47 @@ function NewTier() {
         }}
       />
     </main>
+  );
+}
+
+/**
+ * Mobile-friendly search result row with one-tap "add to tier" buttons.
+ */
+function SearchResult({
+  m,
+  onPick,
+}: {
+  m: MangaSummary;
+  onPick: (tier: string | "POOL") => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
+      <div className="h-14 w-10 shrink-0 overflow-hidden rounded">
+        <CoverImg src={m.cover_url} alt={m.title} className="h-full w-full" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{m.title}</p>
+        {m.author && <p className="truncate text-xs text-muted-foreground">{m.author}</p>}
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {TIERS.map((t) => (
+            <button
+              key={t}
+              onClick={() => onPick(t)}
+              className="grid h-7 w-7 place-items-center rounded-md font-display text-xs font-black text-background"
+              style={{ background: `var(--tier-${t.toLowerCase()})` }}
+              aria-label={`Add to ${t}`}
+            >
+              {t}
+            </button>
+          ))}
+          <button
+            onClick={() => onPick("POOL")}
+            className="rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Pool
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

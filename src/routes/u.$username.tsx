@@ -1,26 +1,20 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { getProfile, listUserTierLists } from "@/lib/tier-lists.functions";
+import { getProfile, listUserTierLists } from "@/lib/tier-lists";
 
 const qo = (username: string) =>
   queryOptions({
     queryKey: ["profile", username],
     queryFn: async () => {
-      const profile = await getProfile({ data: { username } });
+      const profile = await getProfile(username);
       if (!profile) return null;
-      const tiers = await listUserTierLists({ data: { username } });
+      const tiers = await listUserTierLists(username);
       return { profile, tiers };
     },
   });
 
 export const Route = createFileRoute("/u/$username")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(qo(params.username)),
-  head: ({ params }) => ({
-    meta: [
-      { title: `@${params.username} — Mangaverse` },
-      { name: "description", content: `Manga rankings and takes by @${params.username}` },
-    ],
-  }),
   errorComponent: ({ error }) => <div className="p-8 text-center">Failed: {error.message}</div>,
   notFoundComponent: () => <div className="p-8 text-center">User not found</div>,
   component: Profile,
@@ -31,7 +25,6 @@ function Profile() {
   const { data } = useSuspenseQuery(qo(username));
   if (!data) return <div className="py-20 text-center text-muted-foreground">User not found</div>;
   const { profile, tiers } = data;
-
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex items-center gap-4">
@@ -48,7 +41,6 @@ function Profile() {
           {profile.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
         </div>
       </div>
-
       <section className="mt-8">
         <h2 className="mb-3 font-display text-xl font-bold">Tier lists</h2>
         {tiers.length === 0 ? (
@@ -56,12 +48,7 @@ function Profile() {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {tiers.map((t: any) => (
-              <Link
-                key={t.id}
-                to="/tier/$id"
-                params={{ id: t.id }}
-                className="rounded-xl glass p-4 transition-all hover:glow-magenta"
-              >
+              <Link key={t.id} to="/tier/$id" params={{ id: t.id }} className="rounded-xl glass p-4 transition-all hover:glow-magenta">
                 <h3 className="font-display text-lg font-semibold">{t.title}</h3>
                 <p className="mt-1 text-xs capitalize text-muted-foreground">{t.category}</p>
               </Link>
