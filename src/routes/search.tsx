@@ -36,6 +36,11 @@ function SearchPage() {
           {!loading && showing?.length === 0 && (
             <p className="col-span-full text-center text-muted-foreground">No results.</p>
           )}
+          {!loading && !showing && (resultsQ.isError || popularQ.isError) && (
+            <p className="col-span-full text-center text-sm text-destructive">
+              Couldn't reach MangaDex. Check your connection and try again.
+            </p>
+          )}
           {loading && !showing?.length && Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="aspect-[2/3] animate-pulse rounded-xl bg-muted/40" />
           ))}
