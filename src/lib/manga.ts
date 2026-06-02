@@ -2,7 +2,18 @@
 // MangaDex API supports CORS and doesn't require auth.
 import { supabase } from "@/integrations/supabase/client";
 
-const MD = "https://api.mangadex.org";
+// Use a same-origin proxy in production to avoid MangaDex CORS issues
+// (MangaDex doesn't return Access-Control-Allow-Origin for arbitrary origins).
+// Netlify `_redirects` rewrites `/api/md/*` → `https://api.mangadex.org/*`
+// and `/md-covers/*` → `https://uploads.mangadex.org/covers/*`.
+const MD =
+  typeof window !== "undefined" && window.location.hostname.endsWith("netlify.app")
+    ? "/api/md"
+    : "https://api.mangadex.org";
+const COVERS =
+  typeof window !== "undefined" && window.location.hostname.endsWith("netlify.app")
+    ? "/md-covers"
+    : "https://uploads.mangadex.org/covers";
 
 export interface MangaSummary {
   id: string;
