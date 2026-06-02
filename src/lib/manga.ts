@@ -2,7 +2,18 @@
 // MangaDex API supports CORS and doesn't require auth.
 import { supabase } from "@/integrations/supabase/client";
 
-const MD = "https://api.mangadex.org";
+// Use a same-origin proxy in production to avoid MangaDex CORS issues
+// (MangaDex doesn't return Access-Control-Allow-Origin for arbitrary origins).
+// Netlify `_redirects` rewrites `/api/md/*` → `https://api.mangadex.org/*`
+// and `/md-covers/*` → `https://uploads.mangadex.org/covers/*`.
+const MD =
+  typeof window !== "undefined" && window.location.hostname.endsWith("netlify.app")
+    ? "/api/md"
+    : "https://api.mangadex.org";
+const COVERS =
+  typeof window !== "undefined" && window.location.hostname.endsWith("netlify.app")
+    ? "/md-covers"
+    : "https://uploads.mangadex.org/covers";
 
 export interface MangaSummary {
   id: string;
@@ -32,9 +43,8 @@ function normalize(item: any): MangaSummary {
   const author = rels.find((r: any) => r.type === "author")?.attributes?.name ?? null;
   const coverRel = rels.find((r: any) => r.type === "cover_art");
   const coverFile = coverRel?.attributes?.fileName ?? null;
-  // Direct MangaDex cover URL (no proxy). 256.jpg is the small thumbnail.
   const cover_url = coverFile
-    ? `https://uploads.mangadex.org/covers/${item.id}/${coverFile}.256.jpg`
+    ? `${COVERS}/${item.id}/${coverFile}.256.jpg`
     : null;
   return {
     id: item.id,
