@@ -65,6 +65,10 @@ export async function saveTierList(input: SaveInput): Promise<TierListRow> {
 export async function getTierList(
   id: string,
 ): Promise<(TierListRow & { author: { username: string; display_name: string | null; avatar_url: string | null } | null }) | null> {
+  // Guard against invalid UUIDs (e.g. /tier/j5) which would throw a 22P02 error from postgres.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return null;
+  }
   const { data: list, error } = await supabase
     .from("tier_lists")
     .select("*")

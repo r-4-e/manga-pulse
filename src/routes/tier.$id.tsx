@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { getTierList } from "@/lib/tier-lists";
 import { Share2 } from "lucide-react";
@@ -6,14 +6,36 @@ import { toast } from "sonner";
 import { CoverImg } from "@/components/CoverImg";
 
 const qo = (id: string) =>
-  queryOptions({ queryKey: ["tier", id], queryFn: () => getTierList(id) });
+  queryOptions({
+    queryKey: ["tier", id],
+    queryFn: async () => {
+      const t = await getTierList(id);
+      if (!t) throw notFound();
+      return t;
+    },
+    retry: false,
+  });
 
 export const Route = createFileRoute("/tier/$id")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(qo(params.id)),
-  errorComponent: ({ error }) => <div className="p-8 text-center">Failed: {error.message}</div>,
-  notFoundComponent: () => <div className="p-8 text-center">Not found</div>,
+  errorComponent: ({ error }) => <NotFoundCard message="We couldn't load that tier list." detail={error.message} />,
+  notFoundComponent: () => <NotFoundCard message="Tier list not found" detail="It may have been deleted or the link is wrong." />,
   component: ViewTier,
 });
+
+function NotFoundCard({ message, detail }: { message: string; detail?: string }) {
+  return (
+    <div className="mx-auto max-w-md px-4 py-20 text-center">
+      <h1 className="font-display text-5xl font-bold">404</h1>
+      <h2 className="mt-3 text-lg font-semibold">{message}</h2>
+      {detail && <p className="mt-2 text-sm text-muted-foreground">{detail}</p>}
+      <div className="mt-6 flex justify-center gap-2">
+        <Link to="/" className="rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background">Home</Link>
+        <Link to="/tier/new" className="rounded-full border border-border px-5 py-2 text-sm font-semibold">New tier list</Link>
+      </div>
+    </div>
+  );
+}
 
 const TIERS = ["S", "A", "B", "C", "D", "F"] as const;
 const TIER_COLOR: Record<string, string> = {

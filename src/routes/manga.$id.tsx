@@ -1,15 +1,37 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { getManga } from "@/lib/manga";
 import { Calendar, User2, Tag, BookOpen, Plus, Swords } from "lucide-react";
 
 const qo = (id: string) =>
-  queryOptions({ queryKey: ["manga", id], queryFn: () => getManga(id) });
+  queryOptions({
+    queryKey: ["manga", id],
+    queryFn: async () => {
+      const m = await getManga(id);
+      if (!m) throw notFound();
+      return m;
+    },
+    retry: false,
+  });
 
 export const Route = createFileRoute("/manga/$id")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(qo(params.id)),
-  errorComponent: ({ error }) => <div className="p-8 text-center">Failed: {error.message}</div>,
-  notFoundComponent: () => <div className="p-8 text-center">Not found.</div>,
+  errorComponent: ({ error }) => (
+    <div className="mx-auto max-w-md px-4 py-20 text-center">
+      <h1 className="font-display text-5xl font-bold">404</h1>
+      <h2 className="mt-3 text-lg font-semibold">Couldn't load this manga</h2>
+      <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+      <Link to="/" className="mt-6 inline-block rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background">Home</Link>
+    </div>
+  ),
+  notFoundComponent: () => (
+    <div className="mx-auto max-w-md px-4 py-20 text-center">
+      <h1 className="font-display text-5xl font-bold">404</h1>
+      <h2 className="mt-3 text-lg font-semibold">Manga not found</h2>
+      <p className="mt-2 text-sm text-muted-foreground">That ID doesn't match anything on MangaDex.</p>
+      <Link to="/search" className="mt-6 inline-block rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background">Search manga</Link>
+    </div>
+  ),
   component: MangaDetail,
 });
 
