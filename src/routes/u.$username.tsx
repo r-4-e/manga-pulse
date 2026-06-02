@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { getProfile, listUserTierLists } from "@/lib/tier-lists";
 
@@ -7,16 +7,31 @@ const qo = (username: string) =>
     queryKey: ["profile", username],
     queryFn: async () => {
       const profile = await getProfile(username);
-      if (!profile) return null;
+      if (!profile) throw notFound();
       const tiers = await listUserTierLists(username);
       return { profile, tiers };
     },
+    retry: false,
   });
 
 export const Route = createFileRoute("/u/$username")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(qo(params.username)),
-  errorComponent: ({ error }) => <div className="p-8 text-center">Failed: {error.message}</div>,
-  notFoundComponent: () => <div className="p-8 text-center">User not found</div>,
+  errorComponent: ({ error }) => (
+    <div className="mx-auto max-w-md px-4 py-20 text-center">
+      <h1 className="font-display text-5xl font-bold">404</h1>
+      <h2 className="mt-3 text-lg font-semibold">Couldn't load this profile</h2>
+      <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+      <Link to="/" className="mt-6 inline-block rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background">Home</Link>
+    </div>
+  ),
+  notFoundComponent: () => (
+    <div className="mx-auto max-w-md px-4 py-20 text-center">
+      <h1 className="font-display text-5xl font-bold">404</h1>
+      <h2 className="mt-3 text-lg font-semibold">User not found</h2>
+      <p className="mt-2 text-sm text-muted-foreground">No one's using that handle yet.</p>
+      <Link to="/" className="mt-6 inline-block rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background">Home</Link>
+    </div>
+  ),
   component: Profile,
 });
 
