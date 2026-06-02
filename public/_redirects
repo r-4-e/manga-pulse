@@ -1,1 +1,3 @@
-/*    /index.html   200
+/api/md/*       https://api.mangadex.org/:splat              200
+/md-covers/*    https://uploads.mangadex.org/covers/:splat   200
+/*              /index.html                                  200
