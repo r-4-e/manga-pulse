@@ -43,9 +43,8 @@ function normalize(item: any): MangaSummary {
   const author = rels.find((r: any) => r.type === "author")?.attributes?.name ?? null;
   const coverRel = rels.find((r: any) => r.type === "cover_art");
   const coverFile = coverRel?.attributes?.fileName ?? null;
-  // Direct MangaDex cover URL (no proxy). 256.jpg is the small thumbnail.
   const cover_url = coverFile
-    ? `https://uploads.mangadex.org/covers/${item.id}/${coverFile}.256.jpg`
+    ? `${COVERS}/${item.id}/${coverFile}.256.jpg`
     : null;
   return {
     id: item.id,
