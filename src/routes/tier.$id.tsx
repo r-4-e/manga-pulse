@@ -1,39 +1,64 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { getTierList } from "@/lib/tier-lists";
-import { Share2 } from "lucide-react";
+import { Share2, Plus, Compass } from "lucide-react";
 import { toast } from "sonner";
 import { CoverImg } from "@/components/CoverImg";
 
 const qo = (id: string) =>
   queryOptions({
     queryKey: ["tier", id],
-    queryFn: async () => {
-      const t = await getTierList(id);
-      if (!t) throw notFound();
-      return t;
-    },
+    queryFn: () => getTierList(id),
     retry: false,
   });
 
 export const Route = createFileRoute("/tier/$id")({
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(qo(params.id)),
-  errorComponent: ({ error }) => <NotFoundCard message="We couldn't load that tier list." detail={error.message} />,
-  notFoundComponent: () => <NotFoundCard message="Tier list not found" detail="It may have been deleted or the link is wrong." />,
+  loader: async ({ context, params }) => {
+    const data = await context.queryClient
+      .ensureQueryData(qo(params.id))
+      .catch(() => null);
+    if (!data) throw notFound();
+    return data;
+  },
+  errorComponent: ({ error }) => (
+    <NotFoundCard message="We couldn't load that tier list." detail={error.message} />
+  ),
+  notFoundComponent: () => (
+    <NotFoundCard
+      message="Tier list not found"
+      detail="It may have been deleted, set to private, or the link is wrong."
+    />
+  ),
   component: ViewTier,
 });
 
 function NotFoundCard({ message, detail }: { message: string; detail?: string }) {
   return (
-    <div className="mx-auto max-w-md px-4 py-20 text-center">
-      <h1 className="font-display text-5xl font-bold">404</h1>
+    <main className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-4 py-16 text-center">
+      <h1 className="font-display text-6xl font-bold">404</h1>
       <h2 className="mt-3 text-lg font-semibold">{message}</h2>
       {detail && <p className="mt-2 text-sm text-muted-foreground">{detail}</p>}
-      <div className="mt-6 flex justify-center gap-2">
-        <Link to="/" className="rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background">Home</Link>
-        <Link to="/tier/new" className="rounded-full border border-border px-5 py-2 text-sm font-semibold">New tier list</Link>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <Link
+          to="/tier/new"
+          className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background"
+        >
+          <Plus className="h-4 w-4" /> Create a tier list
+        </Link>
+        <Link
+          to="/search"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border px-5 py-2 text-sm font-semibold"
+        >
+          <Compass className="h-4 w-4" /> Browse manga
+        </Link>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
+          Home
+        </Link>
       </div>
-    </div>
+    </main>
   );
 }
 
