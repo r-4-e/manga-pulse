@@ -1,5 +1,18 @@
-import { useState, type DragEvent } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  TouchSensor,
+  MouseSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 
 export interface TierItem {
   id: string;
@@ -31,45 +44,42 @@ export function TierBoard({ initial, pool: initialPool, onChange }: Props) {
     initial ?? Object.fromEntries(TIERS.map((t) => [t, []])),
   );
   const [pool, setPool] = useState<TierItem[]>(initialPool);
-  const [dragged, setDragged] = useState<{ id: string; from: Tier } | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Touch sensor with a small delay so taps (e.g. tier letter buttons in search
+  // results) still register as clicks. Mouse uses tiny distance to start drag.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
 
   function emit(next: TierItems, nextPool: TierItem[]) {
     onChange?.(next, nextPool);
   }
 
-  function findItem(id: string, from: Tier): TierItem | undefined {
-    if (from === "POOL") return pool.find((i) => i.id === id);
-    return items[from]?.find((i) => i.id === id);
-  }
-
-  function removeFrom(id: string, from: Tier) {
-    if (from === "POOL") {
-      const next = pool.filter((i) => i.id !== id);
-      setPool(next);
-      return next;
+  function findItem(id: string): { item: TierItem; from: Tier } | null {
+    const inPool = pool.find((i) => i.id === id);
+    if (inPool) return { item: inPool, from: "POOL" };
+    for (const t of TIERS) {
+      const found = items[t]?.find((i) => i.id === id);
+      if (found) return { item: found, from: t };
     }
-    setItems((prev) => {
-      const next = { ...prev, [from]: prev[from].filter((i) => i.id !== id) };
-      return next;
-    });
     return null;
   }
 
-  function handleDrop(target: Tier, e: DragEvent) {
-    e.preventDefault();
-    if (!dragged) return;
-    const item = findItem(dragged.id, dragged.from);
-    if (!item) return;
-
-    // Remove from origin
+  function moveTo(id: string, target: Tier) {
+    const found = findItem(id);
+    if (!found) return;
+    const { item, from } = found;
+    if (from === target) return;
     let nextPool = pool;
     let nextItems = items;
-    if (dragged.from === "POOL") {
-      nextPool = pool.filter((i) => i.id !== dragged.id);
+    if (from === "POOL") {
+      nextPool = pool.filter((i) => i.id !== id);
     } else {
-      nextItems = { ...items, [dragged.from]: items[dragged.from].filter((i) => i.id !== dragged.id) };
+      nextItems = { ...items, [from]: items[from].filter((i) => i.id !== id) };
     }
-    // Add to target
     if (target === "POOL") {
       nextPool = [...nextPool, item];
     } else {
@@ -77,146 +87,180 @@ export function TierBoard({ initial, pool: initialPool, onChange }: Props) {
     }
     setItems(nextItems);
     setPool(nextPool);
-    setDragged(null);
     emit(nextItems, nextPool);
   }
 
-  function handleDragStart(id: string, from: Tier) {
-    setDragged({ id, from });
+  function removeItem(id: string, from: Tier) {
+    const found = findItem(id);
+    if (!found) return;
+    if (from === "POOL") {
+      const next = pool.filter((i) => i.id !== id);
+      setPool(next);
+      emit(items, next);
+    } else {
+      const next = { ...items, [from]: items[from].filter((i) => i.id !== id) };
+      setItems(next);
+      emit(next, pool);
+    }
   }
 
-  // Mobile tap-to-place
-  const [selected, setSelected] = useState<{ id: string; from: Tier } | null>(null);
-  function tap(id: string, from: Tier) {
-    if (!selected) return setSelected({ id, from });
-    if (selected.id === id) return setSelected(null);
+  function handleDragStart(e: DragStartEvent) {
+    setActiveId(String(e.active.id));
   }
-  function tapTier(target: Tier) {
-    if (!selected) return;
-    const item = findItem(selected.id, selected.from);
-    if (!item) return setSelected(null);
-    let nextPool = pool;
-    let nextItems = items;
-    if (selected.from === "POOL") nextPool = pool.filter((i) => i.id !== selected.id);
-    else nextItems = { ...items, [selected.from]: items[selected.from].filter((i) => i.id !== selected.id) };
-    if (target === "POOL") nextPool = [...nextPool, item];
-    else nextItems = { ...nextItems, [target]: [...(nextItems[target] ?? []), item] };
-    setItems(nextItems);
-    setPool(nextPool);
-    setSelected(null);
-    emit(nextItems, nextPool);
+
+  function handleDragEnd(e: DragEndEvent) {
+    setActiveId(null);
+    if (!e.over) return;
+    moveTo(String(e.active.id), e.over.id as Tier);
   }
+
+  const activeItem = activeId ? findItem(activeId)?.item ?? null : null;
 
   return (
-    <div className="space-y-3">
-      {TIERS.map((tier) => (
-        <div
-          key={tier}
-          className="flex overflow-hidden rounded-xl glass"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => handleDrop(tier, e)}
-          onClick={() => tapTier(tier)}
-        >
-          <div
-            className="grid w-14 shrink-0 place-items-center font-display text-2xl font-black text-background sm:w-20 sm:text-3xl"
-            style={{ background: TIER_COLOR[tier] }}
-          >
-            {tier}
-          </div>
-          <div className="flex min-h-[80px] flex-1 flex-wrap gap-2 p-2">
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveId(null)}
+    >
+      <div className="space-y-3">
+        {TIERS.map((tier) => (
+          <TierRow key={tier} tier={tier}>
             {items[tier]?.map((it) => (
-              <ItemChip
+              <DraggableChip
                 key={it.id}
                 item={it}
-                onDragStart={() => handleDragStart(it.id, tier)}
-                onTap={(e) => {
-                  e.stopPropagation();
-                  tap(it.id, tier);
-                }}
-                selected={selected?.id === it.id}
-                onRemove={() => {
-                  removeFrom(it.id, tier);
-                  setPool((p) => [...p, it]);
-                  emit({ ...items, [tier]: items[tier].filter((x) => x.id !== it.id) }, [...pool, it]);
-                }}
+                from={tier}
+                onRemove={() => removeItem(it.id, tier)}
               />
             ))}
-          </div>
-        </div>
-      ))}
+          </TierRow>
+        ))}
 
-      <div
-        className="rounded-xl glass p-3"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => handleDrop("POOL", e)}
-        onClick={() => tapTier("POOL")}
-      >
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Unranked pool {selected && "— tap a tier above"}
-        </h3>
-        <div className="flex min-h-[80px] flex-wrap gap-2">
+        <PoolDrop>
           {pool.map((it) => (
-            <ItemChip
-              key={it.id}
-              item={it}
-              onDragStart={() => handleDragStart(it.id, "POOL")}
-              onTap={(e) => {
-                e.stopPropagation();
-                tap(it.id, "POOL");
-              }}
-              selected={selected?.id === it.id}
-            />
+            <DraggableChip key={it.id} item={it} from="POOL" />
           ))}
           {pool.length === 0 && (
-            <p className="text-sm text-muted-foreground">Add manga from search to start ranking.</p>
+            <p className="text-sm text-muted-foreground">
+              Add manga from search to start ranking, then drag into a tier.
+            </p>
           )}
-        </div>
+        </PoolDrop>
       </div>
+
+      <DragOverlay dropAnimation={null}>
+        {activeItem ? <ChipVisual item={activeItem} dragging /> : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function TierRow({ tier, children }: { tier: (typeof TIERS)[number]; children: React.ReactNode }) {
+  const { isOver, setNodeRef } = useDroppable({ id: tier });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex overflow-hidden rounded-xl glass transition-colors ${
+        isOver ? "ring-2 ring-primary" : ""
+      }`}
+    >
+      <div
+        className="grid w-14 shrink-0 place-items-center font-display text-2xl font-black text-background sm:w-20 sm:text-3xl"
+        style={{ background: TIER_COLOR[tier] }}
+      >
+        {tier}
+      </div>
+      <div className="flex min-h-[80px] flex-1 flex-wrap gap-2 p-2">{children}</div>
     </div>
   );
 }
 
-function ItemChip({
-  item,
-  onDragStart,
-  onRemove,
-  onTap,
-  selected,
-}: {
-  item: TierItem;
-  onDragStart: () => void;
-  onRemove?: () => void;
-  onTap?: (e: React.MouseEvent) => void;
-  selected?: boolean;
-}) {
+function PoolDrop({ children }: { children: React.ReactNode }) {
+  const { isOver, setNodeRef } = useDroppable({ id: "POOL" });
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
-      onClick={onTap}
-      className={`group relative w-14 cursor-grab overflow-hidden rounded-lg border transition-all active:cursor-grabbing sm:w-16 ${
-        selected ? "border-primary glow-magenta scale-110" : "border-white/10"
+      ref={setNodeRef}
+      className={`rounded-xl glass p-3 transition-colors ${
+        isOver ? "ring-2 ring-primary" : ""
       }`}
+    >
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Unranked pool — drag into a tier
+      </h3>
+      <div className="flex min-h-[80px] flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
+function DraggableChip({
+  item,
+  from,
+  onRemove,
+}: {
+  item: TierItem;
+  from: Tier;
+  onRemove?: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: item.id,
+    data: { from },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      style={{ opacity: isDragging ? 0.3 : 1, touchAction: "none" }}
+      className="group relative w-14 cursor-grab overflow-hidden rounded-lg border border-white/10 active:cursor-grabbing sm:w-16"
       title={item.title}
     >
-      {item.cover_url ? (
-        <img src={item.cover_url} alt={item.title} referrerPolicy="no-referrer" className="aspect-[2/3] w-full object-cover" />
-      ) : (
-        <div className="grid aspect-[2/3] place-items-center bg-muted text-[9px] text-center px-1">
-          {item.title.slice(0, 20)}
-        </div>
-      )}
+      <ChipImage item={item} />
       {onRemove && (
         <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             onRemove();
           }}
           className="absolute right-0.5 top-0.5 hidden h-5 w-5 place-items-center rounded-full bg-background/90 text-foreground group-hover:grid"
+          aria-label="Remove"
         >
           <X className="h-3 w-3" />
         </button>
       )}
+    </div>
+  );
+}
+
+function ChipImage({ item }: { item: TierItem }) {
+  if (item.cover_url) {
+    return (
+      <img
+        src={item.cover_url}
+        alt={item.title}
+        referrerPolicy="no-referrer"
+        draggable={false}
+        className="aspect-[2/3] w-full select-none object-cover"
+      />
+    );
+  }
+  return (
+    <div className="grid aspect-[2/3] place-items-center bg-muted px-1 text-center text-[9px]">
+      {item.title.slice(0, 20)}
+    </div>
+  );
+}
+
+function ChipVisual({ item, dragging }: { item: TierItem; dragging?: boolean }) {
+  return (
+    <div
+      className={`w-14 overflow-hidden rounded-lg border border-primary sm:w-16 ${
+        dragging ? "shadow-2xl ring-2 ring-primary" : ""
+      }`}
+    >
+      <ChipImage item={item} />
     </div>
   );
 }
