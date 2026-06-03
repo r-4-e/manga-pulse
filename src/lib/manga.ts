@@ -1,19 +1,11 @@
-// Browser-side MangaDex client. No server functions, no proxy.
-// MangaDex API supports CORS and doesn't require auth.
+// Browser-side manga client backed by AniList's public GraphQL API.
+// AniList returns `Access-Control-Allow-Origin: *`, so it works from any
+// origin — lovable.dev previews, Netlify, and custom domains — without a
+// server proxy. (MangaDex doesn't send CORS headers for arbitrary origins,
+// which is why the previous direct-fetch implementation failed in previews.)
 import { supabase } from "@/integrations/supabase/client";
 
-// Use a same-origin proxy in production to avoid MangaDex CORS issues
-// (MangaDex doesn't return Access-Control-Allow-Origin for arbitrary origins).
-// Netlify `_redirects` rewrites `/api/md/*` → `https://api.mangadex.org/*`
-// and `/md-covers/*` → `https://uploads.mangadex.org/covers/*`.
-const MD =
-  typeof window !== "undefined" && window.location.hostname.endsWith("netlify.app")
-    ? "/api/md"
-    : "https://api.mangadex.org";
-const COVERS =
-  typeof window !== "undefined" && window.location.hostname.endsWith("netlify.app")
-    ? "/md-covers"
-    : "https://uploads.mangadex.org/covers";
+const ANILIST = "https://graphql.anilist.co";
 
 export interface MangaSummary {
   id: string;
@@ -27,36 +19,73 @@ export interface MangaSummary {
   rating: number | null;
 }
 
-function pickTitle(attrs: any): string {
-  const t = attrs?.title ?? {};
-  return t.en ?? t["ja-ro"] ?? t.ja ?? Object.values(t)[0] ?? "Untitled";
+interface AniListMedia {
+  id: number;
+  title?: { english?: string | null; romaji?: string | null; native?: string | null };
+  coverImage?: { large?: string | null; extraLarge?: string | null };
+  description?: string | null;
+  status?: string | null;
+  startDate?: { year?: number | null };
+  genres?: string[] | null;
+  averageScore?: number | null;
+  staff?: { edges?: Array<{ role?: string; node?: { name?: { full?: string } } }> };
 }
 
-function pickDescription(attrs: any): string | null {
-  const d = attrs?.description ?? {};
-  return d.en ?? Object.values(d)[0] ?? null;
+const MEDIA_FIELDS = `
+  id
+  title { english romaji native }
+  coverImage { large extraLarge }
+  description(asHtml: false)
+  status
+  startDate { year }
+  genres
+  averageScore
+  staff(perPage: 4) {
+    edges { role node { name { full } } }
+  }
+`;
+
+function stripHtml(s: string | null | undefined): string | null {
+  if (!s) return null;
+  return s
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .trim();
 }
 
-function normalize(item: any): MangaSummary {
-  const attrs = item.attributes ?? {};
-  const rels = item.relationships ?? [];
-  const author = rels.find((r: any) => r.type === "author")?.attributes?.name ?? null;
-  const coverRel = rels.find((r: any) => r.type === "cover_art");
-  const coverFile = coverRel?.attributes?.fileName ?? null;
-  const cover_url = coverFile
-    ? `${COVERS}/${item.id}/${coverFile}.256.jpg`
-    : null;
+function normalize(m: AniListMedia): MangaSummary {
+  const title = m.title?.english || m.title?.romaji || m.title?.native || "Untitled";
+  const author =
+    m.staff?.edges?.find((e) => /story|art|original/i.test(e.role ?? ""))?.node?.name?.full ??
+    m.staff?.edges?.[0]?.node?.name?.full ??
+    null;
   return {
-    id: item.id,
-    title: pickTitle(attrs),
-    cover_url,
+    id: String(m.id),
+    title,
+    cover_url: m.coverImage?.extraLarge ?? m.coverImage?.large ?? null,
     author,
-    status: attrs.status ?? null,
-    year: attrs.year ?? null,
-    genres: (attrs.tags ?? []).map((t: any) => t.attributes?.name?.en).filter(Boolean),
-    description: pickDescription(attrs),
-    rating: null,
+    status: m.status?.toLowerCase().replace(/_/g, " ") ?? null,
+    year: m.startDate?.year ?? null,
+    genres: m.genres ?? [],
+    description: stripHtml(m.description),
+    rating: typeof m.averageScore === "number" ? m.averageScore / 10 : null,
   };
+}
+
+async function gql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+  const res = await fetch(ANILIST, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ query, variables }),
+  });
+  if (!res.ok) throw new Error(`AniList ${res.status}`);
+  const json = await res.json();
+  if (json.errors?.length) throw new Error(json.errors[0]?.message ?? "AniList error");
+  return json.data as T;
 }
 
 // Fire-and-forget cache write. RLS forbids anon writes — fail silently if not signed in.
@@ -66,7 +95,7 @@ async function cacheManga(items: MangaSummary[]) {
     await supabase.from("manga_cache").upsert(
       items.map((m) => ({
         id: m.id,
-        source: "mangadex",
+        source: "anilist",
         title: m.title,
         cover_url: m.cover_url,
         author: m.author,
@@ -80,88 +109,57 @@ async function cacheManga(items: MangaSummary[]) {
       { onConflict: "id" },
     );
   } catch {
-    // ignore — cache is best-effort
+    // best-effort
   }
 }
 
 export async function searchManga(q: string): Promise<MangaSummary[]> {
   if (!q.trim()) return [];
-  const url = new URL(`${MD}/manga`);
-  url.searchParams.set("title", q);
-  url.searchParams.set("limit", "24");
-  url.searchParams.append("includes[]", "cover_art");
-  url.searchParams.append("includes[]", "author");
-  url.searchParams.append("contentRating[]", "safe");
-  url.searchParams.append("contentRating[]", "suggestive");
-  url.searchParams.set("order[relevance]", "desc");
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`MangaDex search failed (${res.status})`);
-  const json = await res.json();
-  const items: MangaSummary[] = (json.data ?? []).map(normalize);
-  cacheManga(items);
-  return items;
-}
-
-const FEATURED_TITLES = [
-  "Berserk",
-  "Vinland Saga",
-  "Vagabond",
-  "Attack on Titan",
-  "One Piece",
-  "Chainsaw Man",
-  "Jujutsu Kaisen",
-  "Monster",
-  "Bleach",
-  "Naruto",
-  "Hunter x Hunter",
-  "Tokyo Ghoul",
-];
-
-export async function getFeaturedManga(): Promise<MangaSummary[]> {
-  const results = await Promise.all(
-    FEATURED_TITLES.map(async (title) => {
-      try {
-        const url = new URL(`${MD}/manga`);
-        url.searchParams.set("title", title);
-        url.searchParams.set("limit", "1");
-        url.searchParams.append("includes[]", "cover_art");
-        url.searchParams.append("includes[]", "author");
-        url.searchParams.append("contentRating[]", "safe");
-        url.searchParams.append("contentRating[]", "suggestive");
-        url.searchParams.set("order[relevance]", "desc");
-        const res = await fetch(url.toString());
-        if (!res.ok) return null;
-        const json = await res.json();
-        const item = json.data?.[0];
-        return item ? normalize(item) : null;
-      } catch {
-        return null;
+  const query = `
+    query ($q: String, $perPage: Int) {
+      Page(perPage: $perPage) {
+        media(search: $q, type: MANGA, sort: SEARCH_MATCH, isAdult: false) {
+          ${MEDIA_FIELDS}
+        }
       }
-    }),
-  );
-  const items = results.filter((x): x is MangaSummary => !!x);
+    }
+  `;
+  const data = await gql<{ Page: { media: AniListMedia[] } }>(query, {
+    q: q.trim(),
+    perPage: 24,
+  });
+  const items = (data.Page?.media ?? []).map(normalize);
   cacheManga(items);
   return items;
 }
 
 export async function getPopularManga(): Promise<MangaSummary[]> {
-  const url = new URL(`${MD}/manga`);
-  url.searchParams.set("limit", "18");
-  url.searchParams.append("includes[]", "cover_art");
-  url.searchParams.append("includes[]", "author");
-  url.searchParams.append("contentRating[]", "safe");
-  url.searchParams.append("contentRating[]", "suggestive");
-  url.searchParams.set("order[followedCount]", "desc");
-  const res = await fetch(url.toString());
-  if (!res.ok) return [];
-  const json = await res.json();
-  const items: MangaSummary[] = (json.data ?? []).map(normalize);
-  cacheManga(items);
-  return items;
+  const query = `
+    query ($perPage: Int) {
+      Page(perPage: $perPage) {
+        media(type: MANGA, sort: POPULARITY_DESC, isAdult: false) {
+          ${MEDIA_FIELDS}
+        }
+      }
+    }
+  `;
+  try {
+    const data = await gql<{ Page: { media: AniListMedia[] } }>(query, { perPage: 18 });
+    const items = (data.Page?.media ?? []).map(normalize);
+    cacheManga(items);
+    return items;
+  } catch {
+    return [];
+  }
+}
+
+export async function getFeaturedManga(): Promise<MangaSummary[]> {
+  // Alias to popular — keeps the existing call sites working.
+  return getPopularManga();
 }
 
 export async function getManga(id: string): Promise<MangaSummary | null> {
-  // Try cache first
+  // Try cache first.
   const { data: cached } = await supabase
     .from("manga_cache")
     .select("*")
@@ -183,11 +181,9 @@ export async function getManga(id: string): Promise<MangaSummary | null> {
       rating: cached.rating ? Number(cached.rating) : null,
     };
   }
-  const url = new URL(`${MD}/manga/${id}`);
-  url.searchParams.append("includes[]", "cover_art");
-  url.searchParams.append("includes[]", "author");
-  const res = await fetch(url.toString());
-  if (!res.ok) {
+
+  const numeric = Number(id);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
     return cached
       ? {
           id: cached.id,
@@ -198,12 +194,37 @@ export async function getManga(id: string): Promise<MangaSummary | null> {
           year: cached.year,
           genres: cached.genres ?? [],
           description: cached.description,
-          rating: null,
+          rating: cached.rating ? Number(cached.rating) : null,
         }
       : null;
   }
-  const json = await res.json();
-  const item = normalize(json.data);
-  cacheManga([item]);
-  return item;
+
+  const query = `
+    query ($id: Int) {
+      Media(id: $id, type: MANGA) {
+        ${MEDIA_FIELDS}
+      }
+    }
+  `;
+  try {
+    const data = await gql<{ Media: AniListMedia | null }>(query, { id: numeric });
+    if (!data.Media) return null;
+    const item = normalize(data.Media);
+    cacheManga([item]);
+    return item;
+  } catch {
+    return cached
+      ? {
+          id: cached.id,
+          title: cached.title,
+          cover_url: cached.cover_url,
+          author: cached.author,
+          status: cached.status,
+          year: cached.year,
+          genres: cached.genres ?? [],
+          description: cached.description,
+          rating: cached.rating ? Number(cached.rating) : null,
+        }
+      : null;
+  }
 }
